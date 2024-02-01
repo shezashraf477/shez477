@@ -21,3 +21,4 @@ public class JsonExtractor {
         System.out.println("MDSymbol: " + mdsymbol);
     }
 }
+implementation 'javax.json:javax.json-api:1.1.4' // or the latest version
