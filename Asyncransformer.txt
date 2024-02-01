@@ -1,0 +1,60 @@
+import org.apache.kafka.streams.processor.ProcessorContext;
+import org.apache.kafka.streams.processor.To;
+import org.apache.kafka.streams.state.KeyValueStore;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+import java.util.concurrent.CompletableFuture;
+
+@Component
+public class AsyncTransformerSupplier implements ValueTransformerWithKeySupplier<String, String, CompletableFuture<String>> {
+
+    private final MarketDataProvider marketDataProvider;
+
+    @Autowired
+    public AsyncTransformerSupplier(MarketDataProvider marketDataProvider) {
+        this.marketDataProvider = marketDataProvider;
+    }
+
+    @Override
+    public ValueTransformerWithKey<String, String, CompletableFuture<String>> get() {
+        return new AsyncTransformer(marketDataProvider);
+    }
+}
+
+public class AsyncTransformer implements ValueTransformerWithKey<String, String, CompletableFuture<String>> {
+
+    private final ProcessorContext context;
+    private final MarketDataProvider marketDataProvider;
+
+    public AsyncTransformer(MarketDataProvider marketDataProvider) {
+        this.marketDataProvider = marketDataProvider;
+    }
+
+    @Override
+    public void init(ProcessorContext context) {
+        this.context = context;
+    }
+
+    @Override
+    public CompletableFuture<String> transform(String key, String value) {
+        // Simulate an asynchronous market data lookup
+        return marketDataProvider.lookupMarketData(value)
+                .thenApply(result -> {
+                    // Optionally, you can perform additional processing on the result
+                    // Update the state (KTable)
+                    KeyValueStore<String, String> stateStore = (KeyValueStore<String, String>) context.getStateStore("market-data-store");
+                    stateStore.put(key, result);
+                    // Forward the result to downstream processors if needed
+                    context.forward(key, result, To.child("downstream-processor"));
+                    // Commit the processed record
+                    context.commit();
+                    return result;
+                });
+    }
+
+    @Override
+    public void close() {
+        // Close any resources if needed
+    }
+}
