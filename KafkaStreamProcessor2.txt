@@ -1,18 +1,3 @@
-import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.streams.StreamsBuilder;
-import org.apache.kafka.streams.StreamsConfig;
-import org.apache.kafka.streams.Topology;
-import org.apache.kafka.streams.kstream.Consumed;
-import org.apache.kafka.streams.kstream.KTable;
-import org.apache.kafka.streams.kstream.Transformer;
-import org.apache.kafka.streams.kstream.TransformerSupplier;
-import org.apache.kafka.streams.kstream.ValueTransformerWithKey;
-import org.apache.kafka.streams.kstream.ValueTransformerWithKeySupplier;
-import org.apache.kafka.streams.processor.ProcessorContext;
-import org.apache.kafka.streams.processor.To;
-import org.apache.kafka.streams.state.KeyValueStore;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
@@ -32,6 +17,12 @@ public class KafkaStreamsProcessor {
     @Value("${kafka.output-topic}")
     private String outputTopic;
 
+    private final MarketDataProvider marketDataProvider;
+
+    public KafkaStreamsProcessor(MarketDataProvider marketDataProvider) {
+        this.marketDataProvider = marketDataProvider;
+    }
+
     public Topology buildTopology() {
         StreamsBuilder builder = new StreamsBuilder();
 
@@ -39,7 +30,7 @@ public class KafkaStreamsProcessor {
         KTable<String, String> kTable = builder.table(inputTopic, Consumed.with(Serdes.String(), Serdes.String()));
 
         // Transform values asynchronously and update the KTable
-        kTable.transformValues(new AsyncTransformerSupplier(), "your-state-store")
+        kTable.transformValues(new AsyncTransformerSupplier(marketDataProvider), "market-data-store")
                 .toStream()
                 .to(outputTopic);
 
@@ -51,54 +42,5 @@ public class KafkaStreamsProcessor {
         props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         props.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationId);
         return props;
-    }
-
-    private static class AsyncTransformerSupplier implements ValueTransformerWithKeySupplier<String, String, String> {
-
-        @Override
-        public ValueTransformerWithKey<String, String, String> get() {
-            return new AsyncTransformer();
-        }
-    }
-
-    private static class AsyncTransformer implements ValueTransformerWithKey<String, String, String> {
-
-        private ProcessorContext context;
-        private KeyValueStore<String, String> stateStore;
-
-        @Override
-        public void init(ProcessorContext context) {
-            this.context = context;
-            this.stateStore = (KeyValueStore<String, String>) context.getStateStore("your-state-store");
-        }
-
-        @Override
-        public String transform(String key, String value) {
-            // Perform asynchronous operation with a CompletableFuture
-            CompletableFuture<String> asyncResult = performAsyncOperation(value);
-
-            // Register a callback to handle the result when it completes
-            asyncResult.thenAccept(result -> {
-                // Update the state (KTable)
-                stateStore.put(key, result);
-                // Forward the result to downstream processors if needed
-                context.forward(key, result, To.child("downstream-processor"));
-                // Commit the processed record
-                context.commit();
-            });
-
-            // Return null since the actual result will be handled asynchronously
-            return null;
-        }
-
-        @Override
-        public void close() {
-            // Close any resources if needed
-        }
-
-        private CompletableFuture<String> performAsyncOperation(String value) {
-            // Simulate an asynchronous operation with a CompletableFuture
-            return CompletableFuture.supplyAsync(() -> "AsyncResult-" + value);
-        }
     }
 }
