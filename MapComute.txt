@@ -19,3 +19,21 @@ public class YourClass {
 
     // Other methods and code...
 }
+
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+public class YourClass {
+
+    private Map<String, ConcurrentHashMap<String, String>> outerMap = new ConcurrentHashMap<>();
+
+    public void updateSpecificValue(String outerKey, String nestedKey, String newValue) {
+        // Get or create the nested map for the outer key
+        ConcurrentHashMap<String, String> nestedMap = outerMap.computeIfAbsent(outerKey, k -> new ConcurrentHashMap<>());
+
+        // Update the specific value within the nested map
+        nestedMap.put(nestedKey, newValue);
+    }
+
+    // Other methods and code...
+}
