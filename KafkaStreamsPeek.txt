@@ -1,0 +1,46 @@
+import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.streams.StreamsBuilder;
+import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.kstream.KStream;
+import org.apache.kafka.streams.kstream.Produced;
+
+import java.util.Properties;
+
+public class KafkaStreamsWithPeek {
+
+    public static void main(String[] args) {
+        // Configure Kafka Streams properties
+        Properties properties = new Properties();
+        properties.put(StreamsConfig.APPLICATION_ID_CONFIG, "example-streams");
+        properties.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+        properties.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass().getName());
+        properties.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass().getName());
+
+        // Create a StreamsBuilder
+        StreamsBuilder builder = new StreamsBuilder();
+
+        // Create a KStream from a Kafka topic
+        KStream<String, String> inputStream = builder.stream("input-topic");
+
+        // Use peek to log each element without modifying it
+        KStream<String, String> peekStream = inputStream.peek((key, value) ->
+                System.out.println("Processing key: " + key + ", value: " + value));
+
+        // Perform additional processing or transformations as needed
+        // For example, writing to another topic
+        peekStream.to("output-topic", Produced.with(Serdes.String(), Serdes.String()));
+
+        // Build the topology
+        Topology topology = builder.build();
+
+        // Create Kafka Streams instance
+        org.apache.kafka.streams.KafkaStreams streams = new org.apache.kafka.streams.KafkaStreams(topology, properties);
+
+        // Start the Kafka Streams application
+        streams.start();
+
+        // Add a shutdown hook to gracefully close the streams application
+        Runtime.getRuntime().addShutdownHook(new Thread(streams::close));
+    }
+}
