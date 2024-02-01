@@ -1,0 +1,21 @@
+import java.util.HashMap;
+import java.util.Map;
+
+public class YourClass {
+
+    private Map<String, Map<String, String>> outerMap = new HashMap<>();
+
+    public void updateSpecificValue(String outerKey, String nestedKey, String newValue) {
+        outerMap.compute(outerKey, (key, nestedMap) -> {
+            // If the nested map is not present, create a new one
+            if (nestedMap == null) {
+                nestedMap = new HashMap<>();
+            }
+            // Update the specific value within the nested map
+            nestedMap.put(nestedKey, newValue);
+            return nestedMap;
+        });
+    }
+
+    // Other methods and code...
+}
