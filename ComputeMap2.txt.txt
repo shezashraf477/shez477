@@ -1,0 +1,23 @@
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+public class YourClass {
+
+    private Map<String, Map<String, String>> outerMap = new HashMap<>();
+
+    public void updateSpecificValue(String outerKey, List<Person> persons) {
+        outerMap.computeIfAbsent(outerKey, key -> new HashMap<>());
+        Map<String, String> nestedMap = outerMap.get(outerKey);
+
+        for (Person person : persons) {
+            // Assuming Person class has getId() method to get the person ID
+            String personId = person.getId();
+            // Assuming Person class has getAttributes() method to get the person attributes
+            String personAttributes = person.getAttributes();
+            nestedMap.put(personId, personAttributes);
+        }
+    }
+
+    // Other methods and code...
+}
