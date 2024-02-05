@@ -1,0 +1,28 @@
+// Define tasks for each entry point
+task runApp1(type: JavaExec) {
+    main = 'com.example.app1.Application1'
+    classpath = sourceSets.main.runtimeClasspath
+}
+
+task runApp2(type: JavaExec) {
+    main = 'com.example.app2.Application2'
+    classpath = sourceSets.main.runtimeClasspath
+}
+
+// Configure the JAR tasks for each entry point
+jar {
+    // Configure JAR task for Application1
+    from sourceSets.main.output
+    archiveFileName = 'app1.jar'
+}
+
+task runApp2Jar(type: Jar) {
+    // Configure JAR task for Application2
+    from sourceSets.main.output
+    archiveFileName = 'app2.jar'
+}
+
+// Add a task for running all entry points
+task runAll {
+    dependsOn runApp1, runApp2
+}
