@@ -50,4 +50,13 @@ class KafkaStreamProcessor {
     public void startStream() {
         kafkaStreams.start();
     }
+
+     @Autowired
+    public void processStream(StreamsBuilder streamsBuilder) {
+        KStream<String, String> inputStream = streamsBuilder.stream("your-topic");
+        inputStream.foreach((key, value) -> {
+            System.out.println("Received message: " + value);
+            // Process the received message here
+        });
+    }
 }
