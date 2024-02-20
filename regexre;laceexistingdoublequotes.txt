@@ -1,0 +1,1 @@
+String modJsonString2 = jsonString2.replaceAll("'", "\"").replaceAll("\"", "\\\\\"");
